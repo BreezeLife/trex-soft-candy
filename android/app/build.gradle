@@ -1,0 +1,61 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'life.breeze.trexjelly'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'life.breeze.trexjelly'
+        minSdk 26
+        targetSdk 35
+        versionCode 10300
+        versionName '1.3.0'
+    }
+
+    signingConfigs {
+        debug {
+            // This project-local development key must never be a release identity.
+            storeFile rootProject.file('.local/debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+            // Production signing is deliberately not configured.
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main.assets.srcDir layout.buildDirectory.dir('generated/trexAssets')
+    }
+}
+
+// The root HTML is the only web runtime. Never maintain a second app copy.
+def syncWebAssets = tasks.register('syncWebAssets', Sync) {
+    from(rootProject.file('../index.html'))
+    into(layout.buildDirectory.dir('generated/trexAssets'))
+    doFirst {
+        if (!rootProject.file('../index.html').isFile()) {
+            throw new GradleException('The root index.html is missing.')
+        }
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn syncWebAssets
+}

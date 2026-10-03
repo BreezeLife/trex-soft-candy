@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">霸王龙软软糖</string>
+    <string name="engine_error_title">软糖需要重新打开</string>
+    <string name="engine_error_message">系统网页引擎已中断或不可用。请重新打开；若仍失败，请更新 Android System WebView。图形支持取决于设备与系统网页引擎。</string>
+    <string name="action_retry">重新打开</string>
+    <string name="action_close">关闭</string>
+</resources>

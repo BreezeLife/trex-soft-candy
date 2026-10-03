@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- A large head, tiny arm, heavy legs, and long tail; no downloaded assets. -->
+    <path android:fillColor="#EB886D" android:strokeColor="#BC6152" android:strokeWidth="1.2"
+        android:pathData="M27,72 C17,71 14,62 14,56 C20,64 25,65 32,62 C30,54 34,46 40,43 L42,33 C44,24 54,20 66,23 C74,24 76,29 81,30 C89,30 94,35 91,42 C88,48 78,48 66,48 L62,55 L66,58 L73,56 C77,56 78,60 74,63 L65,65 L59,62 C58,67 60,72 64,78 L70,80 C74,82 71,86 64,86 L55,85 L49,77 L48,82 L50,85 L39,85 C35,84 36,81 40,79 L40,70 C34,74 30,74 27,72 Z" />
+    <path android:fillColor="#FFF3D8"
+        android:pathData="M49,30 C54,25 62,25 67,28 C57,26 54,29 49,34 Z" />
+    <path android:fillColor="#28515B"
+        android:pathData="M63,32 A4,5 0,1 0,71,32 A4,5 0,1 0,63,32 M84,36 A1.6,1.6 0,1 0,87.2,36 A1.6,1.6 0,1 0,84,36" />
+    <path android:fillColor="#FFFDF2"
+        android:pathData="M66,29 A1.3,1.3 0,1 0,68.6,29 A1.3,1.3 0,1 0,66,29" />
+    <path android:fillColor="#00000000" android:strokeColor="#28515B"
+        android:strokeWidth="1.6" android:strokeLineCap="round"
+        android:pathData="M72,42 Q79,44 86,40" />
+    <path android:fillColor="#F5AD91"
+        android:pathData="M61,40 A3,2 0,1 0,67,40 A3,2 0,1 0,61,40" />
+</vector>

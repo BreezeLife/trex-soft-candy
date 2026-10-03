@@ -1,7 +1,7 @@
 'use strict';
 
 // Exercise the real publication script with isolated CLI stand-ins. No GitHub,
-// credential store, network, or real Git repository is used by this test.
+// credential store, network, or real Git repository write is used by this test.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -10,10 +10,25 @@ const { spawnSync } = require('node:child_process');
 
 const projectDir = path.resolve(__dirname, '..');
 const records = ['PROJECT.md', 'MEMORY.md', 'TASKS.md', 'WORKLOG.md'];
+const apkFile = 'downloads/trex-jelly-android-v1.3.0.apk';
+const releaseAssets = ['tests/fullscreen.cjs', 'tests/adapter.cjs', 'tests/renderer.cjs', 'design/toy-icons.png', 'design/2026-10-03-toy-icons-prompt.json', apkFile];
+const androidSources = [
+  'android/.gitignore', 'android/README.md', 'android/settings.gradle', 'android/build.gradle', 'android/gradle.properties',
+  'android/build-local.sh', 'android/gradlew', 'android/gradlew.bat',
+  'android/gradle/wrapper/gradle-wrapper.jar', 'android/gradle/wrapper/gradle-wrapper.properties',
+  'android/tests/LocalContentPolicyTest.java', 'android/app/build.gradle', 'android/app/src/main/AndroidManifest.xml',
+  'android/app/src/main/java/life/breeze/trexjelly/MainActivity.java',
+  'android/app/src/main/java/life/breeze/trexjelly/LocalContentPolicy.java',
+  'android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml', 'android/app/src/main/res/drawable/ic_trex_foreground.xml',
+  'android/app/src/main/res/values/colors.xml', 'android/app/src/main/res/values/strings.xml',
+  'android/app/src/main/res/values/themes.xml', 'android/app/src/main/res/values-v27/themes.xml',
+  'android/app/src/main/res/values-en/strings.xml',
+];
+const publicationPayload = [...records, ...releaseAssets, ...androidSources, 'downloads/README.md', 'SHA256SUMS'];
 const fixtureSources = [
   'index.html', '.nojekyll', '.gitignore', 'README.md', 'package.json',
-  'scripts', 'tests', 'preview', 'publish-github-pages.sh', 'START_HERE.md',
-  'AGENTS.md', 'CODEX_HANDOFF.md', 'TEST_REPORT.md',
+  'scripts', 'tests', 'preview', 'design', 'publish-github-pages.sh', 'START_HERE.md',
+  'AGENTS.md', 'CODEX_HANDOFF.md', 'TEST_REPORT.md', 'SHA256SUMS', 'android', 'downloads',
 ];
 const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'trex-publish-test-'));
 let passed = 0;
@@ -43,7 +58,7 @@ function files(dir, prefix = '') {
     const name = path.join(prefix, entry.name);
     if (entry.name === '.git') return [];
     if (entry.isDirectory()) return files(path.join(dir, entry.name), name);
-    check(entry.isFile(), 'nonregular tracked fixture');
+    check(entry.isFile() || entry.isSymbolicLink(), 'nonregular tracked fixture');
     return [name];
   });
 }
@@ -53,10 +68,12 @@ function snapshot(dir, names, destination) {
   for (const name of names) {
     check(!path.isAbsolute(name) && !name.split(path.sep).includes('..'), 'unsafe staged path');
     const from = path.join(dir, name);
-    check(fs.lstatSync(from).isFile(), 'staged file missing or nonregular');
+    const stat = fs.lstatSync(from);
+    check(stat.isFile() || stat.isSymbolicLink(), 'tracked file missing or nonregular');
     const to = path.join(destination, name);
     fs.mkdirSync(path.dirname(to), { recursive: true });
-    fs.copyFileSync(from, to);
+    if (stat.isSymbolicLink()) fs.symlinkSync(fs.readlinkSync(from), to);
+    else fs.copyFileSync(from, to);
   }
 }
 if (tool === 'gh') {
@@ -121,7 +138,7 @@ if (tool === 'git') {
   if (command === 'clone') {
     check(rest.includes(targetUrl) && rest.includes('main'), 'different clone target');
     state.gitDir = rest.at(-1);
-    fs.cpSync(path.join(root, 'remote'), state.gitDir, { recursive: true });
+    fs.cpSync(path.join(root, 'remote'), state.gitDir, { recursive: true, verbatimSymlinks: true });
     state.tracked = files(state.gitDir); state.staged = []; state.sha = state.oldSha;
     snapshot(state.gitDir, state.tracked, path.join(root, 'committed')); save(); process.exit(0);
   }
@@ -179,7 +196,32 @@ function runCase(name, options = {}) {
   fs.mkdirSync(bin);
   fs.mkdirSync(path.join(root, 'tmp'));
   for (const source of fixtureSources) {
-    fs.cpSync(path.join(projectDir, source), path.join(fixture, source), { recursive: true });
+    const from = path.join(projectDir, source);
+    // Optional, explicit fixture recovery for legacy preview files whose iCloud
+    // hydration is blocked. Read only reviewed HEAD blobs; do not replace source
+    // files or use these bytes to claim the current checkout was verified.
+    if (source === 'preview' && process.env.TREX_MOCK_PREVIEW_FROM_HEAD === '1') {
+      const destination = path.join(fixture, source);
+      fs.mkdirSync(destination);
+      for (const name of ['coral.png', 'lagoon.png', 'grape.png']) {
+        const blob = spawnSync('git', ['-C', projectDir, 'show', 'HEAD:preview/' + name], { maxBuffer: 2 ** 21 });
+        assert.equal(blob.status, 0, 'Cannot read reviewed preview fixture from local Git');
+        fs.writeFileSync(path.join(destination, name), blob.stdout);
+      }
+      continue;
+    }
+    fs.cpSync(from, path.join(fixture, source), {
+      recursive: true,
+      filter: candidate => source !== 'android' || !path.relative(from, candidate).split(path.sep).some(part =>
+        ['.git', '.local', '.gradle', '.gradle-cache', 'build', '.idea', 'local.properties'].includes(part) || /\.(keystore|jks)$/.test(part)),
+    });
+  }
+  // Publication mocks test binary transport, independently of an actual APK
+  // build. Prefer the real exported package once it exists; otherwise use bytes
+  // that include NUL/high-bit values. Actual APK/signature checks run separately.
+  if (!fs.existsSync(path.join(fixture, apkFile))) fs.writeFileSync(path.join(fixture, apkFile), Buffer.from([0x50, 0x4b, 0, 0xff, 0x80, 0x0a]));
+  for (const name of ['.local', '.gradle', '.gradle-cache', 'build', 'local.properties']) {
+    assert(!fs.existsSync(path.join(fixture, 'android', name)), 'private Android files must not enter publication fixtures');
   }
   for (const record of records) fs.writeFileSync(path.join(fixture, record), '# ' + record + '\nPublication fixture: ' + name + '\n');
   if (options.missing) fs.unlinkSync(path.join(fixture, options.missing));
@@ -189,8 +231,14 @@ function runCase(name, options = {}) {
   }
   if (options.existingMain) {
     fs.cpSync(fixture, path.join(root, 'remote'), { recursive: true });
-    if (options.importRecords) for (const record of records) fs.unlinkSync(path.join(root, 'remote', record));
+    if (options.importPayload) for (const file of publicationPayload) fs.unlinkSync(path.join(root, 'remote', file));
     if (options.conflict) fs.writeFileSync(path.join(root, 'remote', options.conflict), 'Unreviewed remote decision.\n');
+    if (options.symlinkParent) {
+      fs.rmSync(path.join(root, 'remote', options.symlinkParent), { recursive: true });
+      fs.mkdirSync(path.join(root, 'external-parent'));
+      fs.writeFileSync(path.join(root, 'external-parent', 'sentinel.txt'), 'Do not write outside the cloned repository.\n');
+      fs.symlinkSync(path.join(root, 'external-parent'), path.join(root, 'remote', options.symlinkParent));
+    }
     fs.writeFileSync(path.join(root, 'remote', 'remote-extra.txt'), 'Preserve this existing file.\n');
   }
   fs.writeFileSync(path.join(root, 'state.json'), JSON.stringify({
@@ -220,34 +268,45 @@ function noPublication(test) {
 function pass(name) { passed++; console.log('PASS ' + name); }
 
 try {
-  for (const record of records) {
-    const test = runCase('missing-' + record, { missing: record });
+  for (const file of [...records, ...releaseAssets]) {
+    const test = runCase('missing-' + file.replaceAll('/', '-'), { missing: file });
     noPublication(test);
-    assert(test.result.stderr.includes(record), 'must identify missing publication record');
-    pass('missing ' + record + ' stops before repository creation or push');
+    assert(test.result.stderr.includes(file), 'must identify missing publication file');
+    pass('missing ' + file + ' stops before repository creation or push');
   }
   const symlink = runCase('symlink-record', { symlink: 'MEMORY.md' });
   noPublication(symlink);
   pass('symlinked project record is rejected');
 
   for (const existingMain of [false, true]) {
-    const test = runCase(existingMain ? 'existing-main' : 'new-repository', { existingMain, importRecords: existingMain });
+    const test = runCase(existingMain ? 'existing-main' : 'new-repository', { existingMain, importPayload: existingMain });
     assert.equal(test.result.status, 0, test.result.stderr + test.result.stdout);
-    for (const record of records) {
-      assert(fs.readFileSync(path.join(test.root, 'pushed', record)).equals(fs.readFileSync(path.join(test.fixture, record))), record + ' must be committed and pushed byte-for-byte');
+    for (const file of publicationPayload) {
+      assert(fs.readFileSync(path.join(test.root, 'pushed', file)).equals(fs.readFileSync(path.join(test.fixture, file))), file + ' must be committed and pushed byte-for-byte');
     }
     assert.equal(test.calls.filter(call => call.tool === 'git' && call.args.includes('push')).length, 1);
     assert.equal(test.calls.filter(call => call.tool === 'gh' && call.args[0] === 'repo').length, existingMain ? 0 : 1);
     assert(test.result.stdout.includes('GitHub Pages 已上线并验证'), 'must verify the pushed commit and HTTPS content');
     if (existingMain) assert.equal(fs.readFileSync(path.join(test.root, 'pushed', 'remote-extra.txt'), 'utf8'), 'Preserve this existing file.\n');
-    pass((existingMain ? 'existing main imports records and preserves extra files' : 'new repository publishes all four records') + ' with verified mock Pages');
+    pass((existingMain ? 'existing main imports records/assets and preserves extra files' : 'new repository publishes all required records/assets') + ' with verified mock Pages');
   }
 
-  const conflict = runCase('remote-record-conflict', { existingMain: true, conflict: 'MEMORY.md' });
-  noPublication(conflict);
-  assert(conflict.result.stderr.includes('MEMORY.md'), 'must identify the unreviewed remote difference');
-  assert.equal(fs.readFileSync(path.join(conflict.root, 'remote', 'MEMORY.md'), 'utf8'), 'Unreviewed remote decision.\n');
-  pass('unreviewed remote project record stops without overwriting or pushing');
+  for (const file of ['MEMORY.md', 'design/2026-10-03-toy-icons-prompt.json']) {
+    const conflict = runCase('remote-conflict-' + file.replaceAll('/', '-'), { existingMain: true, conflict: file });
+    noPublication(conflict);
+    assert(conflict.result.stderr.includes(file), 'must identify the unreviewed remote difference');
+    assert.equal(fs.readFileSync(path.join(conflict.root, 'remote', file), 'utf8'), 'Unreviewed remote decision.\n');
+    pass('unreviewed remote ' + file + ' stops without overwriting or pushing');
+  }
+
+  for (const parent of ['design', 'android/app/src', 'downloads']) {
+    const test = runCase('remote-symlink-' + parent.replaceAll('/', '-'), { existingMain: true, symlinkParent: parent });
+    noPublication(test);
+    assert(test.result.stderr.includes(parent), 'must identify the unsafe parent directory');
+    assert.deepEqual(fs.readdirSync(path.join(test.root, 'external-parent')), ['sentinel.txt'], 'must not write through the remote parent symlink');
+    assert.equal(fs.readFileSync(path.join(test.root, 'external-parent', 'sentinel.txt'), 'utf8'), 'Do not write outside the cloned repository.\n');
+    pass('remote ' + parent + ' symlink stops before copying outside the cloned repository');
+  }
 
   for (const options of [{ account: 'DifferentUser' }, { authAvailable: false }]) {
     const test = runCase(options.account ? 'wrong-account' : 'missing-authorization', options);

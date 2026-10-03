@@ -1,0 +1,78 @@
+{
+  "type": "A production UI icon sprite sheet for a children's tactile toy, T-Rex Jelly",
+  "goal": "Exactly 12 cohesive tactile 3D icons on one transparent canvas, usable as a 4-column by 3-row CSS sprite atlas. This is icon art, not a screenshot or UI mockup.",
+  "style": {
+    "rendering": "Premium playful 3D toy sculpture, rounded thick beveled forms, soft studio illumination upper-left, subtle grounded shadow and small glossy highlights. Charming, legible silhouettes appropriate for young children; same view and scale across all icons.",
+    "material": "Smooth soft rubber and candy-like clay. No thin line icons.",
+    "palette": "peach coral, butter yellow, grass green, turquoise, soft violet, creamy highlights; dark teal only for tiny facial details"
+  },
+  "layout": {
+    "grid": "EXACT 4 equal columns × 3 equal rows. Each icon precisely centered in its equal cell. Canvas aspect ratio 4:3. Every object and shadow stays within the central 72% of its own cell, equal blank transparent gutters.",
+    "background": "Fully transparent alpha, no backdrop, no white checkerboard, no colored tile or app badge behind icons.",
+    "labels": "Absolutely no text, letters, numbers, captions, logos or watermarks."
+  },
+  "icons": [
+    {
+      "cell": "row 1 col 1",
+      "object": "A coral squishy jelly ball pinched in the middle with a tiny happy face, represents softness"
+    },
+    {
+      "cell": "row 1 col 2",
+      "object": "A thick lavender toy coil spring with a small yellow bouncing ball above it, represents wobble settling"
+    },
+    {
+      "cell": "row 1 col 3",
+      "object": "A chunky turquoise clockwise circular reset arrow with a soft beveled arrowhead"
+    },
+    {
+      "cell": "row 1 col 4",
+      "object": "A butter yellow friendly toy camera with a small curved orbit arrow, represents reset viewpoint"
+    },
+    {
+      "cell": "row 2 col 1",
+      "object": "Two thick parallel golden-yellow pause bars, standing side by side"
+    },
+    {
+      "cell": "row 2 col 2",
+      "object": "A peach toy hand with palm facing viewer, rounded fingers, two tiny turquoise motion droplets, represents gentle nudge"
+    },
+    {
+      "cell": "row 2 col 3",
+      "object": "A chubby smiling green turtle in three-quarter view, represents slow motion"
+    },
+    {
+      "cell": "row 2 col 4",
+      "object": "An isometric open cube made of thick turquoise-blue rounded lattice rods, represents show mesh"
+    },
+    {
+      "cell": "row 3 col 1",
+      "object": "Four thick violet outward corner arrows arranged as a fullscreen expand symbol"
+    },
+    {
+      "cell": "row 3 col 2",
+      "object": "A thick rounded grass-green play triangle pointing right"
+    },
+    {
+      "cell": "row 3 col 3",
+      "object": "A plump turquoise toy gear with a butter yellow center"
+    },
+    {
+      "cell": "row 3 col 4",
+      "object": "A thick coral rounded X close symbol"
+    }
+  ],
+  "constraints": {
+    "must_keep": [
+      "All 12 specified distinct icons, exactly one per equal cell, same material quality and lighting",
+      "Simple immediately readable forms, no microscopic details",
+      "Transparent negative space between objects; do not overlap adjacent cells"
+    ],
+    "avoid": [
+      "Flat vector rendering",
+      "App button backgrounds",
+      "Photorealistic human skin",
+      "UI text or screenshot layouts",
+      "More or fewer than twelve icons"
+    ]
+  }
+}

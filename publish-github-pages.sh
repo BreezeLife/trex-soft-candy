@@ -8,6 +8,16 @@ repository_url="https://github.com/${repository}.git"
 export GH_HOST=github.com GH_PROMPT_DISABLED=1 GIT_TERMINAL_PROMPT=0
 
 die() { printf '停止：%s\n' "$*" >&2; exit 1; }
+guard_ancestors() {
+  local base_dir="$1" file="$2" scope="$3" ancestor_dir='' part_index
+  local -a file_parts
+  IFS='/' read -r -a file_parts <<< "$file"
+  for ((part_index=0; part_index<${#file_parts[@]}-1; part_index++)); do
+    ancestor_dir="${ancestor_dir:+$ancestor_dir/}${file_parts[$part_index]}"
+    [[ ! -L "$base_dir/$ancestor_dir" ]] || die "${scope}的 ${ancestor_dir} 目录是符号链接；未覆盖。"
+    [[ ! -e "$base_dir/$ancestor_dir" || -d "$base_dir/$ancestor_dir" ]] || die "${scope}的 ${ancestor_dir} 不是目录；未覆盖。"
+  done
+}
 for dependency in gh git node curl; do
   command -v "$dependency" >/dev/null 2>&1 || die "缺少 ${dependency}。请在已配置 gh 的电脑上运行此脚本。"
 done
@@ -16,8 +26,26 @@ gh auth status --hostname github.com >/dev/null 2>&1 || die '未检测到可用�
 account="$(gh api --hostname github.com user --jq .login)"
 [[ "$(printf '%s' "$account" | tr '[:upper:]' '[:lower:]')" == 'breezelife' ]] || die "当前授权账号是 ${account}，目标仓库属于 BreezeLife；未执行任何发布操作。"
 node "$project_dir/scripts/check.mjs"
-files=(index.html .nojekyll .gitignore README.md package.json scripts/check.mjs scripts/serve.mjs publish-github-pages.sh START_HERE.md AGENTS.md CODEX_HANDOFF.md PROJECT.md MEMORY.md TASKS.md WORKLOG.md TEST_REPORT.md tests/controls.cjs tests/physics.cjs tests/publish.cjs preview/coral.png preview/lagoon.png preview/grape.png)
+files=(
+  index.html .nojekyll .gitignore README.md package.json SHA256SUMS
+  scripts/check.mjs scripts/serve.mjs publish-github-pages.sh START_HERE.md AGENTS.md CODEX_HANDOFF.md
+  PROJECT.md MEMORY.md TASKS.md WORKLOG.md TEST_REPORT.md
+  tests/controls.cjs tests/fullscreen.cjs tests/adapter.cjs tests/renderer.cjs tests/physics.cjs tests/publish.cjs
+  design/toy-icons.png design/2026-10-03-toy-icons-prompt.json preview/coral.png preview/lagoon.png preview/grape.png
+  android/.gitignore android/README.md android/settings.gradle android/build.gradle android/gradle.properties
+  android/build-local.sh android/gradlew android/gradlew.bat
+  android/gradle/wrapper/gradle-wrapper.jar android/gradle/wrapper/gradle-wrapper.properties
+  android/tests/LocalContentPolicyTest.java android/app/build.gradle android/app/src/main/AndroidManifest.xml
+  android/app/src/main/java/life/breeze/trexjelly/MainActivity.java
+  android/app/src/main/java/life/breeze/trexjelly/LocalContentPolicy.java
+  android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml android/app/src/main/res/drawable/ic_trex_foreground.xml
+  android/app/src/main/res/values/colors.xml android/app/src/main/res/values/strings.xml
+  android/app/src/main/res/values/themes.xml android/app/src/main/res/values-v27/themes.xml
+  android/app/src/main/res/values-en/strings.xml
+  downloads/README.md downloads/trex-jelly-android-v1.3.0.apk
+)
 for file in "${files[@]}"; do
+  guard_ancestors "$project_dir" "$file" '发布文件'
   [[ -f "$project_dir/$file" && ! -L "$project_dir/$file" ]] || die "发布文件不存在或不是普通文件：${file}"
 done
 
@@ -52,14 +80,10 @@ else
   grep -q $'\trefs/heads/main$' <<< "$remote_refs" || die '已有仓库没有 main 分支；为保护现有内容，脚本不会新建或替换分支。'
   git_github clone --quiet --single-branch --branch main "$repository_url" "$publish_dir"
   [[ -f "$publish_dir/index.html" ]] || die '已有 main 分支没有本项目的 index.html；未覆盖仓库。'
-  [[ ! -L "$publish_dir/tests" && ! -L "$publish_dir/preview" ]] || die '已有仓库的 tests 或 preview 目录是符号链接；未覆盖。'
-  [[ ! -L "$publish_dir/scripts" ]] || die '已有仓库的 scripts 目录是符号链接；未覆盖。'
-  [[ ! -e "$publish_dir/tests" || -d "$publish_dir/tests" ]] || die '已有仓库的 tests 不是目录；未覆盖。'
-  [[ ! -e "$publish_dir/preview" || -d "$publish_dir/preview" ]] || die '已有仓库的 preview 不是目录；未覆盖。'
-  [[ ! -e "$publish_dir/scripts" || -d "$publish_dir/scripts" ]] || die '已有仓库的 scripts 不是目录；未覆盖。'
   # Existing files must match this export. Preserve any additional files, and
   # refuse to overwrite differing content; review and merge it separately.
   for file in "${files[@]}"; do
+    guard_ancestors "$publish_dir" "$file" '已有仓库'
     if [[ -L "$publish_dir/$file" ]]; then
       die "已有仓库的 ${file} 是符号链接；未覆盖。"
     fi
@@ -71,6 +95,7 @@ else
 fi
 
 for file in "${files[@]}"; do
+  guard_ancestors "$project_dir" "$file" '发布文件'
   [[ -f "$project_dir/$file" && ! -L "$project_dir/$file" ]] || die "发布文件不存在或不是普通文件：${file}"
   mkdir -p "$(dirname "$publish_dir/$file")"
   cp "$project_dir/$file" "$publish_dir/$file"

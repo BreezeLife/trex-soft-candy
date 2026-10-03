@@ -1,4 +1,64 @@
-# 霸王龙软软糖｜本机续开发验收
+# 霸王龙软软糖｜v1.3 儿童乐园验收
+
+日期：2026-10-03（北京时间）。环境：macOS 15.7、Node v26.8.2、Codex 内置真实 WebGPU 浏览器。未读取到浏览器版本和 GPU 型号，不扩展为 Chrome/Safari 各版本的兼容承诺。
+
+## 当前功能
+
+- 依据用户附件改为天空、草地、描边圆标题和厚底玩具按钮；加大眼睛与高光，增加共享变形绑定的脸颊。
+- Image 2 生成统一 12 格 3D 玩具图标，原图与提示保存在 `design/`；实际网页直接内嵌 atlas，继续保持一个 HTML、无外部请求或框架。
+- 常驻推一下、暂停/继续、重新来、更多玩法；软硬、阻尼、慢速、网格与复位视角进入有明确关闭入口的弹层。图标同时保留短标签、读屏名称和键盘操作。
+- 保留中文/English 和本地语言偏好。新增原生全屏，能力不可用时进入可退出且明确标识的沉浸视图。
+- 修复真实全屏状态事件先到而 Promise 未结束时退出被锁住的问题；事件解除锁，迟到 Promise 不覆盖新操作。
+- 完善三指加入、换指、零距离缩放、模态面板、渲染失效与中断清理；隐藏页跳过绘制，零物理步复用蒙皮。
+- 修复最远背面把肢体之间空气计入糖体厚度：新增可见入口距离，再取其后的最近出口。仍为稳定的不透明合成与近似透光，不是完整光线追踪。
+
+## 验证结果与证据边界
+
+| 层级 | 结果 | 边界 |
+| --- | --- | --- |
+| 静态 | `npm run check`、`git diff --check`、发布脚本语法通过 | 不等于 GPU 执行 |
+| 适配器 mock | 6 项 core/compatibility 选择检查通过 | 不是 Android GPU 的实际能力证明 |
+| 渲染 mock | 12 项选择、失败回退及资源清理回归通过 | 不编译实际 GLSL；实际后端画面另行验证 |
+| 控制 mock | 26 项 Node/DOM 回归通过 | 双指、三指、失焦、取消、重入、失效、模态焦点和只读诊断是模拟事件 |
+| 全屏 mock | 11 项通过；退出锁回归先失败后通过 | WebKit 前缀、不支持能力与拒绝降级未全部在实际设备重现 |
+| 数值 | 15 次不复位强拉、3,870 步、278 次采样通过 | 最大边长比 1.866039，体积比 0.983162–1.005416，最低表面 0.011999996；有限采样，不是所有时刻保证 |
+| 求解器恢复 | 运动指标从 6.677452 降到 0.002816；本机平均物理步约 4.586 ms | 不是浏览器 FPS、GPU 或手机性能 |
+| 发布 mock | 20 项通过，显式清单 52 文件（含 SHA256SUMS） | 隔离 mock，不是真实发布；覆盖 APK 缺失、字节一致与多级目录符号链接保护 |
+| 真实本机浏览器 | WebGPU 启动、WGSL 全部管线、三配色、滑块两端、暂停切色、网格、慢速、复位、推动、语言刷新保持、原生全屏进入与退出通过；warn/error 为空 | 没有做真实 device-lost 故障注入，也没有测量浏览器帧率和温度 |
+| 真实 WebGL2 浏览器 | GLSL 编译绘制、三种配色、网格/慢速、复位视角、局部抓取与释放通过；390×844 和 768×1024 显示正常，warn/error 为空 | 通过 `?renderer=webgl2` 强制后端，真实 GL2 执行；不等于 Android System WebView 真机 |
+| 真实指针抓取 | 头、身体、前肢、脚、尾巴各 3 次，共 15 次；模型连续、五官跟随，释放后 mode=null、pointerCount=0 | 每次先暂停复位再恢复，以固定初始命中部位；不复位连续强拉属于数值测试 |
+| 手机/平板尺寸 | 320×568、390×844、568×320、768×1024、1024×768，以及桌面 1280×720/800 的真实浏览器布局检查通过；弹层关闭/滚动可达 | 使用桌面真实浏览器尺寸与鼠标输入，不是 iPhone/iPad 硬件或真实多点触控 |
+| 真实手机/平板 | 待测 | 本机无可用 Android 手机、平板或模拟器；其他类别的 Android 设备不作为手机/平板验收。未记录真实触控、方向切换、系统全屏、后台恢复或 FPS |
+| GitHub Pages v1.3 | 待发布与线上验收 | 本节将在取得实际提交和线上证据后更新 |
+
+抓取诊断只读记录真实射线命中的材料坐标和累计计数，不把空白处转动相机计作抓取。最终核验示例：尾巴约 `[-1.47,1.31,0.25]`；头 `[1.28,3.25,0.42]`；前肢 `[0.90,2.03,0.79]`；躯干 `[-0.03,1.75,0.60]`；脚 `[0.58,0.44,0.68]`。每部位均有三条递增 sequence 记录。
+
+本地证据位于 `validation/2026-10-03-v13/`（Git 忽略）：`verified-grabs.json` 保存最终 15 次命中与清理状态；`native-fullscreen-enter.png`/`native-fullscreen-exit.png` 配合按钮 `data-mode=native/windowed`、`aria-busy=false` 证明状态同步；其余图片记录尺寸、配色、弹层。带 `final` 的配色图采用新的入口/出口管线。早期 pull 图片是修复前记录，不作为最终材质证据。`preview/` 仍是历史 llvmpipe 离屏图。
+
+## Android手机/平板安装测试版
+
+同一APK面向手机和平板，`life.breeze.trexjelly`、版本1.3.0 / 10300、minSdk26（Android 8.0）、targetSdk35。纯Java Activity使用系统WebView读取APK内置的同一HTML，不需要网络、存储、相机、麦克风或位置权限。根页面优先WebGPU core/compatibility，不可用时换canvas并启动原生WebGL2。
+
+- 24项JVM URL白名单检查通过，仅允许固定本地HTTPS首页的GET。
+- 两个后端保持同一SoftBody、Skin、Camera和90Hz步长；WebGL2使用RGBA8深度编码，不要求浮点颜色附件扩展。
+- 资源清理回归先红后绿，覆盖片元编译、链接、缓冲/帧缓冲/VAO失败和重复释放。
+- Android后台、失焦和旋转会发出网页已有blur清理；JS卡顿时再次按返回直接退出。实际系统生命周期与手势仍待真机。
+- API26基础主题与API27导航栏样式分开，保留最低系统版本；不通过禁用lint规避兼容错误。
+
+最终HTML SHA-256：`300ae5d473714fcfda4d5a64c4be7848c613bfbb0532d296148bc16791481945`。
+
+最终APK：[`downloads/trex-jelly-android-v1.3.0.apk`](downloads/trex-jelly-android-v1.3.0.apk)，2,490,960 bytes；SHA-256 `fdf5a67b75e3e18959c7951370e63d9c80cfe1a0ab865324c40bfdf80192cd74`。
+
+- JDK17 / SDK35 / Gradle8.14.3 / AGP8.13.0，最终离线 `assembleDebug` 与 `lintDebug` 成功。APK v2签名通过，包内 `assets/index.html` 与冻结根源码逐字节一致；无keystore/jks、无专属ABI native库，无权限申请。
+- lint为0 errors / 4 warnings：API33返回属性在旧版忽略、Android12备份配置提示、min26资源目录冗余、启动图标缺单色版本。另有SDK XML版本与Gradle弃用构建提示，不作为真机通过证据。
+- 从实际APK读取HTML，以原生封装相同CSP在localhost:8091加载；真实浏览器执行WebGL2，390×844英文、768×1024中文无横向溢出。暂停切色、设置、慢动作/网格与视角复位通过；内嵌图标可见，warn/error为空。证据为`apk-csp-phone-390-en.png`、`apk-csp-tablet-768-zh.png`。这验证包内容与CSP，不是Android WebView硬件验收。
+- 20项发布mock以 `TREX_MOCK_PREVIEW_FROM_HEAD=1 npm run test:publish` 通过；本机旧 `preview/lagoon.png` 的iCloud占位文件读取异常，因此三个历史preview fixture与校验和使用已审阅Git HEAD字节，不修改/暂存本机预览图。实际线上保留原Git blob。新版HTML、atlas及APK均按实际文件校验。
+
+真实源码：[BreezeLife/trex-soft-candy](https://github.com/BreezeLife/trex-soft-candy)；站点：[GitHub Pages](https://breezelife.github.io/trex-soft-candy/)。
+
+---
+
+# v1.2 历史验收记录
 
 测试对象：v1.2.0。测试日期：2026-10-03（北京时间）。环境：macOS 15.7、Node v26.8.2、Codex 内置真实浏览器。浏览器自动化接口未提供可读取的版本/适配器型号，故不声称某个 Chrome/Safari 版本兼容。
 

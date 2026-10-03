@@ -1,5 +1,9 @@
 # 长期决策
 
+## 2026-10-03 · 儿童视觉与触摸要求
+
+用户新参考图为浅蓝天空、草绿地面、圆润白字深描边、厚底按钮的儿童游戏风，明确表示当前可爱度不够。这一要求优先于旧交接文档的暖白编辑式UI。保留霸王龙造型、真实局部软体、双语、单HTML；所有主要控制改为立体玩具图标，允许用Image 2生成并内嵌为data资源（不引入外部网络请求）。图标同时保留儿童友好短标签和完整ARIA名称。增加手机/平板触摸与全屏功能，不以设备尺寸模拟冒充真机。
+
 ## 2026-10-03 接手
 
 - 输入是 v1.1 交接包，本地没有 `.git` 或四份长期项目记录；先读取交接和历史报告，再补齐记录。
@@ -16,3 +20,15 @@
 ## 2026-10-03 · 正式仓库与部署
 
 源码：https://github.com/BreezeLife/trex-soft-candy，Pages：https://breezelife.github.io/trex-soft-candy/。运行时首次发布SHA `e4f65c9f416d0b553039680a01341c1ab1545b13` 已构建成功，HTTPS文件与本地一致，Pages来源legacy/main/根目录。初始导入脚本只用于同内容安全导入；后续变更在本项目正式Git历史中审阅、commit、普通push，不再使用导入脚本覆盖同名差异。语言偏好按站点origin保存，本地localhost与GitHub Pages互不继承。
+
+## v1.3 技术决策
+
+- 常用4按钮常驻，物理参数与观察工具收入可关闭弹层；图标配文字，不用图标猜含义。
+- 原生全屏以fullscreenchange确认状态，不能等待requestFullscreen Promise才允许退出；保留revision防止旧Promise干扰新请求。
+- 抓取诊断必须来自真实ray hit，不能把orbit误点算作验收。只读WebMCP diagnostics保存命中rest坐标和grabCount。
+- 厚度使用可见入口与其后最近出口，避免最远背面穿过空气形成硬色块；仍是近似糖体材质。
+- 真机触控与性能仍需实机证据，桌面浏览器手机/平板尺寸不替代实机。
+
+## Android与兼容渲染决策
+
+用户要求可安装的Android手机和平板版本。工程采用纯Java Activity + 系统WebView，把根HTML原样打包，禁止另维护运行时副本。首选标准WebGPU，再尝试compatibility适配器，初始化不可用时换新canvas启动原生WebGL2；两后端共用几何、物理与交互。安装测试包使用项目本地开发签名，密钥与缓存不提交。API26是安装下限，仍须设备提供WebGPU或WebGL2。没有Android手机/平板时，编译、签名、CSP浏览器验收与真机触控/性能必须分别记录。
