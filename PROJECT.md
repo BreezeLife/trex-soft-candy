@@ -16,3 +16,9 @@
 ## 项目记录
 
 长期决策见 `MEMORY.md`，当前状态见 `TASKS.md`，工作历史见 `WORKLOG.md`，验收证据见 `TEST_REPORT.md`。交接任务与完整约束仍以 `CODEX_HANDOFF.md`、`AGENTS.md` 为准。
+
+## 正式地址
+
+- 源码：https://github.com/BreezeLife/trex-soft-candy
+- GitHub Pages：https://breezelife.github.io/trex-soft-candy/
+- 当前功能版本：v1.2.0，中英文UI；真实设备与部署验收边界见测试报告。

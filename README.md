@@ -2,7 +2,7 @@
 
 一只可以抓住、拉伸、揉捏，再松手看它摇晃回弹的 3D 霸王龙软糖。原生 WebGPU 渲染，所有几何、材质与灯光由代码生成；完整体验放在一个 HTML 文件内，无第三方依赖、外部模型或图片。
 
-这是 v1.2 本机续开发版，增加中文 / English 选择，并修复横屏布局及抓取中断。先读 `AGENTS.md`、`CODEX_HANDOFF.md`、四份项目记录和 `TEST_REPORT.md`。GitHub Pages 的实际发布与验证状态见测试报告；历史试玩站点为 <https://trex-soft-candy.weiqi.chatgpt.site>。
+这是 v1.2 本机续开发版，增加中文 / English 选择，并修复横屏布局及抓取中断。先读 `AGENTS.md`、`CODEX_HANDOFF.md`、四份项目记录和 `TEST_REPORT.md`。GitHub Pages 已部署：<https://breezelife.github.io/trex-soft-candy/>；源码：<https://github.com/BreezeLife/trex-soft-candy>。构建与HTTPS文件核对已通过，真实线上浏览器与真机验收的详细状态见测试报告。历史试玩站点为 <https://trex-soft-candy.weiqi.chatgpt.site>。
 
 ## 开始试玩
 

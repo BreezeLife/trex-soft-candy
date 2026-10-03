@@ -19,13 +19,15 @@
 | 真实浏览器 | WebGPU LIVE、WGSL/所有绘制管线执行、5部位各3次真实指针抓取释放、三配色、滑块0/100、暂停、网格、慢速、轻推、相机/键盘通过；控制台warn/error为空 | 浏览器强拉每次先复位以确保点击部位；连续不复位压力属于数值测试。没有测量浏览器帧率/温度 |
 | 手机尺寸 | 中英文390×844、320×568竖屏，667×375、568×320、844×390横屏显示主体和控件；矮横屏底部控件滚动可达 | 是真实浏览器窗口尺寸与鼠标指针测试，不是手机硬件或双指输入 |
 | 手机真机 | 待测 | iPhone镜像被Mac登录锁挡住；未解锁、未读取密码。没有可用实机触屏证据 |
-| GitHub Pages | 本地验收完成，正在执行首次发布 | 构建、HTTPS内容与线上浏览器尚待确认 |
+| GitHub Pages | `e4f65c9f416d0b553039680a01341c1ab1545b13` 构建built、legacy/main/根目录配置、HTTPS HTML与本地字节一致 | 线上真实浏览器回归仍待UI恢复 |
+
+真实源码：[BreezeLife/trex-soft-candy](https://github.com/BreezeLife/trex-soft-candy)；真实站点：[GitHub Pages](https://breezelife.github.io/trex-soft-candy/)。首次运行时发布SHA：`e4f65c9f416d0b553039680a01341c1ab1545b13`；后续验收记录按普通Git提交更新，不改运行时文件。
 
 最终HTML SHA-256：`ac41cf7f763b5a2e98b79417a3602f421d024719aa4f77e40f07cbf5dc367e3a`。
 
 本地截图与真实指针记录保存在 `validation/2026-10-03/`（被Git忽略），含横屏修复前后、三配色、网格与五部位抓取。历史preview图片仍是llvmpipe离屏图，不能当作本次截图。
 
-未完成项目：真机单指/双指/触控中断/方向变化和性能、真实GPU device-lost/无WebGPU端到端故障注入、GitHub实际构建与线上浏览器回归。
+未完成项目：真机单指/双指/触控中断/方向变化和性能、真实GPU device-lost/无WebGPU端到端故障注入、线上浏览器回归（浏览器连接恢复超时，当前聊天打开请求queued；已请求用户切回本聊天继续验收；本地浏览器通过不替代线上交互）。
 
 ---
 
