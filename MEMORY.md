@@ -32,3 +32,7 @@
 ## Android与兼容渲染决策
 
 用户要求可安装的Android手机和平板版本。工程采用纯Java Activity + 系统WebView，把根HTML原样打包，禁止另维护运行时副本。首选标准WebGPU，再尝试compatibility适配器，初始化不可用时换新canvas启动原生WebGL2；两后端共用几何、物理与交互。安装测试包使用项目本地开发签名，密钥与缓存不提交。API26是安装下限，仍须设备提供WebGPU或WebGL2。没有Android手机/平板时，编译、签名、CSP浏览器验收与真机触控/性能必须分别记录。
+
+## v1.3正式发布
+
+运行时与Android APK提交fc2bae0fe6d9b776a11ae7547af64ac004178c01，Pages构建built，HTTPS网页与APK逐字节一致。安装包地址为站点downloads/trex-jelly-android-v1.3.0.apk。源码HTML hash300ae5d…，APK hashfdf5a67b…（完整值见TEST_REPORT）。Git HTTPS传输不通时，本次用已审阅Git Data API进行force:false等价快进，并验证完整tree/commit与本地相同；没有覆盖远端历史。线上UI验证连接超时及Android真机仍待验收，不把下载成功当作真机通过。

@@ -16,7 +16,7 @@
 
 | 层级 | 结果 | 边界 |
 | --- | --- | --- |
-| 静态 | `npm run check`、`git diff --check`、发布脚本语法通过 | 不等于 GPU 执行 |
+| 静态 | `npm run check`、差异空白检查、发布脚本语法通过（官方 Windows wrapper 保留 CRLF，Git 单次检查识别 CR-at-EOL） | 不等于 GPU 执行 |
 | 适配器 mock | 6 项 core/compatibility 选择检查通过 | 不是 Android GPU 的实际能力证明 |
 | 渲染 mock | 12 项选择、失败回退及资源清理回归通过 | 不编译实际 GLSL；实际后端画面另行验证 |
 | 控制 mock | 26 项 Node/DOM 回归通过 | 双指、三指、失焦、取消、重入、失效、模态焦点和只读诊断是模拟事件 |
@@ -29,7 +29,7 @@
 | 真实指针抓取 | 头、身体、前肢、脚、尾巴各 3 次，共 15 次；模型连续、五官跟随，释放后 mode=null、pointerCount=0 | 每次先暂停复位再恢复，以固定初始命中部位；不复位连续强拉属于数值测试 |
 | 手机/平板尺寸 | 320×568、390×844、568×320、768×1024、1024×768，以及桌面 1280×720/800 的真实浏览器布局检查通过；弹层关闭/滚动可达 | 使用桌面真实浏览器尺寸与鼠标输入，不是 iPhone/iPad 硬件或真实多点触控 |
 | 真实手机/平板 | 待测 | 本机无可用 Android 手机、平板或模拟器；其他类别的 Android 设备不作为手机/平板验收。未记录真实触控、方向切换、系统全屏、后台恢复或 FPS |
-| GitHub Pages v1.3 | 待发布与线上验收 | 本节将在取得实际提交和线上证据后更新 |
+| GitHub Pages v1.3 | `fc2bae0fe6d9b776a11ae7547af64ac004178c01` 构建 built；HTTPS HTML 与 APK 均与本地逐字节一致 | 线上浏览器导航、新标签与后续状态读取超时，线上交互待恢复；不影响已确认下载文件 |
 
 抓取诊断只读记录真实射线命中的材料坐标和累计计数，不把空白处转动相机计作抓取。最终核验示例：尾巴约 `[-1.47,1.31,0.25]`；头 `[1.28,3.25,0.42]`；前肢 `[0.90,2.03,0.79]`；躯干 `[-0.03,1.75,0.60]`；脚 `[0.58,0.44,0.68]`。每部位均有三条递增 sequence 记录。
 
@@ -46,6 +46,8 @@
 - API26基础主题与API27导航栏样式分开，保留最低系统版本；不通过禁用lint规避兼容错误。
 
 最终HTML SHA-256：`300ae5d473714fcfda4d5a64c4be7848c613bfbb0532d296148bc16791481945`。
+
+实际下载：[Android APK](https://breezelife.github.io/trex-soft-candy/downloads/trex-jelly-android-v1.3.0.apk)。
 
 最终APK：[`downloads/trex-jelly-android-v1.3.0.apk`](downloads/trex-jelly-android-v1.3.0.apk)，2,490,960 bytes；SHA-256 `fdf5a67b75e3e18959c7951370e63d9c80cfe1a0ab865324c40bfdf80192cd74`。
 
