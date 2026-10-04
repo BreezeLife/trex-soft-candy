@@ -71,6 +71,34 @@ function advance(steps, phase) {
 
 advance(270, 'initial-settle');
 checkState('settle-3s', true);
+assert.ok(sim.grabs instanceof Map, 'The solver must support separately owned local grabs.');
+const dualPulls = [];
+for (const [name, leftRest, rightRest, leftDelta, rightDelta, steps] of [
+  ['body', [-.6, 1.8, .5], [.5, 1.8, .5], [-2, .4, 0], [2, .4, 0], 180],
+  ['tail-head', [-2.7, 1.8, .04], [1.65, 3.05, .3], [-2.6, 1.2, .8], [2.6, .8, -.6], 90],
+  ['arm-foot', [1.05, 1.92, .7], [.9, .2, .7], [2.6, 2, .5], [-2.6, .3, -.5], 90],
+]) {
+  const left = sim.binding(leftRest), right = sim.binding(rightRest);
+  const leftStart = sim.map(left), rightStart = sim.map(right);
+  const initialSeparation = Math.hypot(...leftStart.map((value, i) => value - rightStart[i]));
+  sim.grabs.set(11, { bind: left, target: leftStart.map((value, i) => value + leftDelta[i]) });
+  sim.grabs.set(12, { bind: right, target: rightStart.map((value, i) => value + rightDelta[i]) });
+  advance(steps, 'dual-' + name);
+  const leftEnd = sim.map(left), rightEnd = sim.map(right);
+  const separation = Math.hypot(...leftEnd.map((value, i) => value - rightEnd[i]));
+  if (name === 'body') {
+    assert.ok(separation - initialSeparation > .45 && separation / initialSeparation > 1.4,
+      'Opposing body grabs must create visible local elongation, not whole-model translation.');
+  }
+  dualPulls.push({ name, initialSeparation, separation, gain: separation - initialSeparation });
+  checkState('dual-' + name, true);
+  const surviving = sim.grabs.get(12);
+  sim.grabs.delete(11);
+  assert.equal(sim.grab, surviving, 'Releasing one constraint must retain the other.');
+  advance(30, 'dual-' + name + '-one-hand');
+  sim.grabs.clear();
+  advance(180, 'dual-' + name + '-release');
+}
 const pullSites = [
   ['tail', [-2.7, 1.8, 0.04]],
   ['head', [1.65, 3.05, 0.3]],
@@ -82,8 +110,7 @@ for (const [name, restPoint] of pullSites) {
   for (let repeat = 0; repeat < 3; repeat++) {
     const bind = sim.binding(restPoint);
     const currentPoint = sim.map(bind);
-    // Direct solver stress intentionally exceeds the UI's total pull-distance
-    // clamp. Alternate strong pulls without resetting the preceding state.
+    // Alternate strong three-axis pulls without resetting the preceding state.
     sim.grab = { bind, target: [currentPoint[0] + (repeat % 2 ? 2.6 : -2.6), currentPoint[1] + 2, currentPoint[2] + 1.5] };
     advance(90, `${name}-pull-${repeat}`);
     checkState(`${name}-pull-${repeat}`, true);
@@ -104,6 +131,14 @@ for (const firmness of [0, 1]) {
   assert.ok(sim.v.some(value => value !== 0), 'Nudge must impart motion.');
   advance(180, `firmness-${firmness}`);
   checkState(`firmness-${firmness}`, true);
+  const left = sim.binding([-.6, 1.8, .5]), right = sim.binding([.5, 1.8, .5]);
+  const a = sim.map(left), b = sim.map(right);
+  sim.grabs.set(21, { bind: left, target: [a[0] - 3, a[1] + 1, a[2]] });
+  sim.grabs.set(22, { bind: right, target: [b[0] + 3, b[1] + 1, b[2]] });
+  advance(90, `firmness-${firmness}-dual-pull`);
+  checkState(`firmness-${firmness}-dual-pull`, true);
+  sim.grabs.clear();
+  advance(180, `firmness-${firmness}-dual-release`);
 }
 
 sim.paused = true;
@@ -117,11 +152,14 @@ sim.reset();
 assert.deepEqual(sim.p, sim.rest, 'Reset must restore every lattice position exactly.');
 assert.ok(sim.v.every(value => value === 0), 'Reset must clear every velocity.');
 assert.equal(sim.grab, null, 'Reset must clear the active grab.');
+assert.equal(sim.grabs.size, 0, 'Reset must clear every local grab.');
 
 console.log('Checkpoints:', JSON.stringify(checkpoints.map(({ name, maxStrain, volumeRatio, minSurfaceY, energy }) =>
   ({ name, maxStrain, volumeRatio, minSurfaceY, energy })), null, 2));
 console.log('Summary:', JSON.stringify({
   strongPulls: 15,
+  dualPulls,
+  endpointDualPulls: 2,
   fixedSteps,
   sampledStates: samples.length,
   maxSampledStrain: Math.max(...samples.map(sample => sample.maxStrain)),
@@ -133,4 +171,3 @@ console.log('Summary:', JSON.stringify({
   regressionLimits: limits,
 }));
 console.log('PASS: repeated strong pulls/releases, sampled floor contacts, finite skinning, approximate volume preservation, recovery, nudge, firmness endpoints, exact pause/reset.');
-

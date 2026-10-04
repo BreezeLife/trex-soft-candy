@@ -214,7 +214,8 @@ pass('mesh and both settings sliders');
 
 const canvas = element('stage');
 const camera = api.camera;
-assert.deepEqual(api.jellyState().diagnostics, { mode: null, pointerCount: 0, lastPointer: null, lastGrab: null, grabCount: 0 });
+assert.deepEqual(api.jellyState().diagnostics, { mode: null, pointerCount: 0, lastPointer: null, lastGrab: null, grabCount: 0,
+  camera: { yaw: camera.yaw, pitch: camera.pitch, distance: camera.distance }, activeGrabCount: 0, activeGrabs: [] });
 function project(point) {
   const value = [0, 0, 0, 0], source = [...point, 1];
   for (let row = 0; row < 4; row++) for (let column = 0; column < 4; column++) value[row] += camera.vp[column * 4 + row] * source[column];
@@ -258,7 +259,8 @@ const grabPoint = api.sim.grab.target.slice();
 canvas.events.pointermove({ ...hit, clientX: hit.clientX + 600, clientY: hit.clientY - 300 });
 assert.equal(camera.yaw, yawBeforeGrab);
 assert.ok(api.sim.grab.target.every(Number.isFinite));
-assert.ok(Math.hypot(...api.sim.grab.target.map((value, index) => value - grabPoint[index])) <= 2.60001);
+const pullDistance = Math.hypot(...api.sim.grab.target.map((value, index) => value - grabPoint[index]));
+assert.ok(pullDistance > 3 && pullDistance <= 3.80001, 'A long drag must allow a visibly longer, still bounded pull.');
 canvas.events.wheel({ preventDefault() {}, deltaY: -500 });
 window.events.keydown({ key: 'ArrowRight', code: 'ArrowRight', preventDefault() {} });
 window.events.keydown({ key: '+', code: 'Equal', preventDefault() {} });
@@ -289,14 +291,103 @@ camera.update(1400 / 900);
 hit = project([-0.25, 1.65, 0.6]);
 canvas.events.pointerdown({ ...hit, pointerType: 'touch' });
 assert.ok(api.sim.grab);
-canvas.events.pointerdown({ ...hit, pointerId: 2, pointerType: 'touch', clientX: hit.clientX + 100 });
-assert.equal(api.sim.grab, null);
-const beforePinch = camera.distance;
-canvas.events.pointermove({ ...hit, pointerId: 2, clientX: hit.clientX + 200 });
-assert.ok(camera.distance < beforePinch && camera.distance >= 6.4);
-canvas.events.pointercancel({ pointerId: 2 });
+const firstGrab = api.sim.grab, headHit = { ...project([1.25, 3.02, .45]), pointerId: 2, pointerType: 'touch' };
+const dualCamera = [camera.yaw, camera.pitch, camera.distance];
+canvas.events.pointerdown(headHit);
+assert.ok(api.sim.grab === firstGrab, 'A second dinosaur hit must preserve the first local grab.');
+assert.equal(api.sim.grabs.size, 2, 'Each finger must own an independent local constraint.');
+const dualDiagnostics = api.jellyState().diagnostics;
+assert.equal(dualDiagnostics.activeGrabCount, 2);
+assert.deepEqual(dualDiagnostics.activeGrabs.map(grab => grab.pointerId), [1, 2]);
+dualDiagnostics.activeGrabs[0].target[0] = 999;
+dualDiagnostics.activeGrabs[0].rest[0] = 999;
+assert.notEqual(api.sim.grab.target[0], 999, 'Active grab diagnostics must return copied targets.');
+assert.notEqual(api.jellyState().diagnostics.activeGrabs[0].rest[0], 999);
+const secondGrab = api.sim.grabs.get(2), firstTarget = firstGrab.target.slice(), secondTarget = secondGrab.target.slice();
+assert.notDeepEqual(secondGrab.bind.ids, firstGrab.bind.ids, 'Two distant hits must bind different local nodes.');
+canvas.events.pointermove({ ...hit, pointerType: 'touch', clientX: hit.clientX - 180 });
+assert.notDeepEqual(firstGrab.target, firstTarget);
+assert.deepEqual(secondGrab.target, secondTarget, 'Moving one finger must not overwrite the other target.');
+const firstAfterMove = firstGrab.target.slice();
+canvas.events.pointermove({ ...headHit, clientX: headHit.clientX + 180 });
+assert.notDeepEqual(secondGrab.target, secondTarget);
+assert.deepEqual(firstGrab.target, firstAfterMove);
+assert.deepEqual([camera.yaw, camera.pitch, camera.distance], dualCamera, 'Two object pulls must never orbit or zoom the view.');
+canvas.events.pointerdown({ ...project([-2.6, 1.55, .1]), pointerId: 3, pointerType: 'touch' });
+canvas.events.pointermove({ ...headHit, pointerId: 3, clientX: headHit.clientX + 300 });
+assert.equal(api.sim.grabs.size, 2, 'A third finger must not create a third constraint or cancel existing pulls.');
+assert.deepEqual([camera.yaw, camera.pitch, camera.distance], dualCamera);
+canvas.events.pointerup({ pointerId: 3 });
 canvas.events.pointerup({ pointerId: 1 });
-pass('simulated two-pointer pinch cancels object grab and touch cancel releases');
+assert.equal(api.sim.grabs.size, 1);
+assert.ok(api.sim.grab === secondGrab, 'Releasing one hand must retain the other constraint.');
+const survivingTarget = secondGrab.target.slice();
+canvas.events.pointermove({ ...headHit, clientX: headHit.clientX + 230 });
+assert.notDeepEqual(secondGrab.target, survivingTarget, 'The surviving hand must continue pulling.');
+canvas.events.pointerup({ pointerId: 2 });
+assert.equal(api.sim.grabs.size, 0);
+assert.equal(api.sim.grab, null);
+assert.equal(canvas.capturedPointers.size, 0);
+pass('two true object hits pull independent local nodes, ignore a third finger and retain a surviving hand without camera movement');
+
+canvas.events.pointerdown({ ...hit, pointerId: 11, pointerType: 'touch' });
+const mixedGrab = api.sim.grab, mixedTarget = mixedGrab.target.slice();
+canvas.events.pointerdown({ clientX: 20, clientY: 400, pointerId: 12, button: 0, pointerType: 'touch' });
+canvas.events.pointermove({ clientX: 220, clientY: 450, pointerId: 12, pointerType: 'touch' });
+assert.ok(api.sim.grab === mixedGrab, 'A blank second touch must retain the object grab.');
+assert.deepEqual(mixedGrab.target, mixedTarget);
+assert.deepEqual([camera.yaw, camera.pitch, camera.distance], dualCamera, 'A mixed object/blank gesture must not become camera zoom.');
+canvas.events.pointercancel({ pointerId: 11 });
+assert.equal(api.sim.grabs.size, 0, 'Touch cancellation must clear the complete interrupted object gesture.');
+assert.equal(canvas.capturedPointers.size, 0);
+canvas.events.pointerup({ pointerId: 12 });
+pass('mixed object and blank touches preserve the pull and cancellation releases every capture');
+
+canvas.events.pointerdown({ clientX: 20, clientY: 400, pointerId: 21, button: 0, pointerType: 'touch' });
+canvas.events.pointermove({ clientX: 180, clientY: 440, pointerId: 21, pointerType: 'touch' });
+assert.deepEqual([camera.yaw, camera.pitch, camera.distance], dualCamera, 'A missed single touch must not move the floor by orbiting the camera.');
+canvas.events.pointerup({ pointerId: 21 });
+pass('blank single-finger touch keeps the camera still');
+
+canvas.events.pointerdown({ clientX: 20, clientY: 400, pointerId: 25, button: 0, pointerType: 'touch' });
+canvas.events.pointerdown({ ...hit, pointerId: 26, pointerType: 'touch' });
+assert.equal(api.sim.grabs.size, 1, 'Blank then object must create one local grab rather than pinch.');
+canvas.events.pointermove({ clientX: 220, clientY: 450, pointerId: 25, pointerType: 'touch' });
+assert.deepEqual([camera.yaw, camera.pitch, camera.distance], dualCamera);
+canvas.events.pointercancel({ pointerId: 25 });
+assert.equal(api.sim.grabs.size, 0);
+assert.equal(canvas.capturedPointers.size, 0);
+pass('blank then object touch also locks the camera and cancellation clears the interrupted gesture');
+
+canvas.events.pointerdown({ ...hit, pointerId: 27, pointerType: 'touch' });
+canvas.events.pointerdown({ ...headHit, pointerId: 28, pointerType: 'touch' });
+const captureSurvivor = api.sim.grabs.get(28);
+const capturedTarget = captureSurvivor.target.slice();
+canvas.events.lostpointercapture({ pointerId: 27 });
+assert.equal(api.sim.grabs.size, 1);
+assert.equal(api.sim.grab, captureSurvivor, 'Losing one pointer capture must retain the other owned grab.');
+canvas.events.pointermove({ ...headHit, pointerId: 28, clientX: headHit.clientX + 100 });
+assert.notDeepEqual(captureSurvivor.target, capturedTarget);
+canvas.events.pointercancel({ pointerId: 28 });
+assert.equal(api.sim.grabs.size, 0);
+assert.equal(canvas.capturedPointers.size, 0);
+pass('one lost capture preserves the surviving local grab and the final interruption cleans up');
+
+for (const [name, interrupt] of [
+  ['blur', () => window.events.blur()], ['visibility', () => document.events.visibilitychange()],
+  ['resize', () => window.events.resize()], ['pause', () => { element('pause').onclick(); element('pause').onclick(); }],
+  ['reset', () => element('reset').onclick()], ['cancel', () => canvas.events.pointercancel({ pointerId: 31 })],
+]) {
+  canvas.events.pointerdown({ ...hit, pointerId: 31, pointerType: 'touch' });
+  canvas.events.pointerdown({ ...headHit, pointerId: 32, pointerType: 'touch' });
+  assert.equal(api.sim.grabs.size, 2, name + ' fixture must own both grabs.');
+  interrupt();
+  assert.equal(api.sim.grabs.size, 0, name + ' must clear both local constraints.');
+  assert.equal(canvas.capturedPointers.size, 0, name + ' must release every capture.');
+  assert.equal(api.jellyState().diagnostics.pointerCount, 0);
+  canvas.events.pointerup({ pointerId: 31 }); canvas.events.pointerup({ pointerId: 32 });
+}
+pass('dual grabs clean up on cancellation, blur, visibility, resize, pause and reset');
 
 element('view').onclick();
 camera.update(1400 / 900);
@@ -378,7 +469,8 @@ pass('settings clear capture, block grabbing, retain bilingual state, trap Tab a
 camera.update(1400 / 900);
 hit = project([-0.25, 1.65, 0.6]);
 camera.distance = 10;
-const touch = (pointerId, offset) => ({ ...hit, pointerId, pointerType: 'touch', clientX: hit.clientX + offset });
+const touch = (pointerId, offset) => ({ clientX: 20 + offset, clientY: 400, pointerId, pointerType: 'touch', button: 0 });
+assert.equal(api.skin.pick(camera.eye, camera.ray(20, 400, canvas.getBoundingClientRect())), null, 'Pinch fixtures must begin on real blank space.');
 canvas.events.pointerdown(touch(201, 0));
 canvas.events.pointerdown(touch(202, 100));
 canvas.events.pointermove(touch(202, 110));
@@ -423,6 +515,18 @@ assert.ok(Number.isFinite(camera.distance) && Math.abs(camera.distance - 10) < 1
 canvas.events.pointercancel(touch(302, 0));
 canvas.events.pointerup(touch(301, 0));
 pass('zero-distance pinch stays finite and starts or returns without a zoom jump');
+
+camera.distance = 10;
+const beforeTouchOrbit = [camera.yaw, camera.pitch, camera.distance];
+canvas.events.pointerdown(touch(311, 0));
+canvas.events.pointerdown(touch(312, 100));
+canvas.events.pointermove({ ...touch(311, 0), clientY: 420 });
+canvas.events.pointermove({ ...touch(312, 100), clientY: 420 });
+assert.equal(api.sim.grabs.size, 0, 'Blank camera gestures must never acquire deformation constraints.');
+assert.ok(camera.pitch > beforeTouchOrbit[1], 'Moving the two blank touches together must preserve touch orbit access.');
+assert.ok(Math.abs(camera.distance - beforeTouchOrbit[2]) < 1e-9, 'Parallel blank touches must return to the same zoom.');
+canvas.events.pointerup({ pointerId: 311 }); canvas.events.pointerup({ pointerId: 312 });
+pass('two blank touches can gently orbit by their midpoint while retaining pinch zoom');
 
 element('view').onclick();
 camera.update(1400 / 900);

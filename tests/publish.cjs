@@ -10,8 +10,10 @@ const { spawnSync } = require('node:child_process');
 
 const projectDir = path.resolve(__dirname, '..');
 const records = ['PROJECT.md', 'MEMORY.md', 'TASKS.md', 'WORKLOG.md'];
-const apkFile = 'downloads/trex-jelly-android-v1.3.0.apk';
-const releaseAssets = ['tests/fullscreen.cjs', 'tests/adapter.cjs', 'tests/renderer.cjs', 'design/toy-icons.png', 'design/2026-10-03-toy-icons-prompt.json', apkFile];
+const apkFile = 'downloads/trex-jelly-android-v1.4.0.apk';
+const previousApkFile = 'downloads/trex-jelly-android-v1.3.0.apk';
+const releaseAssets = ['tests/fullscreen.cjs', 'tests/adapter.cjs', 'tests/renderer.cjs', 'design/toy-icons.png',
+  'design/2026-10-03-toy-icons-prompt.json', 'design/2026-10-04-two-hand-play.md', previousApkFile, apkFile];
 const androidSources = [
   'android/.gitignore', 'android/README.md', 'android/settings.gradle', 'android/build.gradle', 'android/gradle.properties',
   'android/build-local.sh', 'android/gradlew', 'android/gradlew.bat',
@@ -231,7 +233,9 @@ function runCase(name, options = {}) {
   }
   if (options.existingMain) {
     fs.cpSync(fixture, path.join(root, 'remote'), { recursive: true });
-    if (options.importPayload) for (const file of publicationPayload) fs.unlinkSync(path.join(root, 'remote', file));
+    if (options.importPayload) for (const file of publicationPayload) {
+      if (file !== previousApkFile) fs.unlinkSync(path.join(root, 'remote', file));
+    }
     if (options.conflict) fs.writeFileSync(path.join(root, 'remote', options.conflict), 'Unreviewed remote decision.\n');
     if (options.symlinkParent) {
       fs.rmSync(path.join(root, 'remote', options.symlinkParent), { recursive: true });
@@ -291,7 +295,7 @@ try {
     pass((existingMain ? 'existing main imports records/assets and preserves extra files' : 'new repository publishes all required records/assets') + ' with verified mock Pages');
   }
 
-  for (const file of ['MEMORY.md', 'design/2026-10-03-toy-icons-prompt.json']) {
+  for (const file of ['MEMORY.md', 'design/2026-10-03-toy-icons-prompt.json', previousApkFile]) {
     const conflict = runCase('remote-conflict-' + file.replaceAll('/', '-'), { existingMain: true, conflict: file });
     noPublication(conflict);
     assert(conflict.result.stderr.includes(file), 'must identify the unreviewed remote difference');
