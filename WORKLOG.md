@@ -51,3 +51,5 @@ Pages实际构建fc2bae0fe6d9b776a11ae7547af64ac004178c01为built、无构建err
 冻结v1.4 HTML 9fb1e1ed…：32控制回归及总61项Node、5400步/385采样物理通过，双点躯干+47.7%实际伸长、六秒收敛能量0.000321。冻结版真实WebGPU15次有效抓取全部相机固定/释放全清，WebGL2也实际渲染与抓取；两语言纯图标/手机平板尺寸/原生全屏进出通过。APK构建初遇iCloud dataless Groovy class和transform元数据EOF，保留坏缓存证据，用/tmp隔离可生成缓存重建，不改冻结源/签名。
 
 Android v1.4.0/code10400离线构建及lint成功（0错误/4既有警告），APK1259896bytes、SHA256489d2efa…，v2签名与v1.3同证书可升级、内嵌HTML与冻结源相等、无权限/私钥。实际APK页面+CSP的WebGL2手机中文/平板英文、暂停切色和设置通过；Android实体设备依然未连接。
+
+以已审阅基线eaa285e快进发布9d50b5443d7e688649fe7a49f40e29171b73a76f；54项清单、53项内容校验和，新旧APK均保留。Pages built无error，HTTPS网页/APK逐字节一致。线上DOM替代接口确认新版并完成英文/暂停/配色/设置/慢速/网格点击，ready webgpu；原生UI读取和截图超时，open_in_codex仍queued，已请求用户切回当前聊天继续线上拖拽，不冒称完成。

@@ -1,6 +1,6 @@
 # 霸王龙软软糖｜v1.4 双指拉扯与纯图标验收
 
-日期：2026-10-04（北京时间）。冻结 HTML SHA256：`9fb1e1edeb2ececa0db6536f040bb65ef006ac372d1b8fcc32fbfe96ca8377c8`。
+日期：2026-10-04 至 10-05（北京时间）。冻结 HTML SHA256：`9fb1e1edeb2ececa0db6536f040bb65ef006ac372d1b8fcc32fbfe96ca8377c8`。
 
 ## 修改
 
@@ -34,7 +34,15 @@
 
 本机iCloud可生成缓存出现dataless class/metadata EOF。保留诊断后，使用/tmp隔离Gradle缓存和已有只读依赖完成构建，不修改全局凭据或签名；实际命令与结果保存在`android-build-isolated.log`等本机证据中。APK内页面按相同CSP在localhost:8091实际运行WebGL2：390手机中文、768平板英文、暂停切色、设置、速度和网格通过，warn/error为空。这仍不是Android硬件验收。
 
-当前同步前基线为`eaa285ed563c05d843d8855c168978e12c198c84`，实际发布提交与HTTPS结果待同步后追加。以下v1.3仅为历史证据。
+## v1.4 实际发布
+
+运行时及APK发布提交`9d50b5443d7e688649fe7a49f40e29171b73a76f`，由已审阅基线`eaa285ed563c05d843d8855c168978e12c198c84`快进；使用已有gh登录的Git Data传输逐blob、完整tree/commit核对，force:false，未覆盖远端变更。Pages该提交为built且无构建错误。
+
+HTTPS下载的HTML与新APK均与本地逐字节一致，SHA256分别为上述9fb1e1ed…与489d2efa…。正式网页：[v1.4试玩](https://breezelife.github.io/trex-soft-candy/?v=1.4.0)；安装包：[Android手机/平板APK](https://breezelife.github.io/trex-soft-candy/downloads/trex-jelly-android-v1.4.0.apk)。
+
+线上真实浏览器通过DOM接口确认新版手势说明与图形演示，并实际点击英文、暂停、Lagoon、设置、速度和网格，WebMCP返回ready=true/backend=webgpu及对应状态。原生截图/拖拽接口超时，打开页面返回queued，已请求当前聊天回前台；因此线上拖拽与截图仍待恢复，不能把本机15次抓取冒称线上结果。Android实体双指与性能也仍待测。
+
+以下v1.3仅为历史证据。
 
 ---
 
