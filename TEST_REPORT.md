@@ -35,7 +35,11 @@
 
 ## v1.5发布进度
 
-本地验证通过，准备沿用既有BreezeLife授权同步57项发布清单；真实Pages提交、构建与HTTPS字节核对尚待执行。实体Android双指与触感、系统中断及性能仍未验收。
+运行时及APK发布提交 `46b67b7554f5a91b88de07a0bd59689dedcf9a73`，从已审阅的c1ae4f5基线快进；57项显式文件，Git Data逐blob与完整tree/commit SHA核对后仅force:false更新main，保留远端内容和旧包。Pages此提交built且无error；HTTPS下载HTML与APK均cmp一致，hash分别为上述a39a328…与cdf84902…。
+
+[正式v1.5试玩](https://breezelife.github.io/trex-soft-candy/?v=1.5.0) · [Android手机/平板升级包](https://breezelife.github.io/trex-soft-candy/downloads/trex-jelly-android-v1.5.0.apk)。
+
+发布后线上导航再次超时，恢复后标签仍停在本地APK内页；再读线上标签超时，open_in_codex返回queued、等待当前聊天前台。已向用户请求切回；线上拖拽和截图仍待完成，不把本机15次抓取当作线上通过。实体Android双指与触感、系统中断及性能也仍未验收。
 
 ---
 

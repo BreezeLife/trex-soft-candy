@@ -52,3 +52,5 @@ v1.4运行时/APK发布提交9d50b5443d7e688649fe7a49f40e29171b73a76f，Pages bu
 双指Map路由已有，但手机细尾的指腹中心射线可漏拾取。新增仅touch使用的8–16CSSpx采样，命中当前三角形后保存偏移；两个彩色圈显示实际成功抓点。另修pointerdown在转屏第一帧误用旧canvas backing宽高的问题，改用CSS舞台rect。38项控制回归含+38.23%双指实际伸长；不是实体触屏证据。
 
 当前检测到DBY-W09实体平板，Android12/华为WebView114且安装v1.4.0；CUA没有Android镜像和双触点操作接口，未把设备在线当成验收完成。v1.5最终APK与HTML冻结hash及真实浏览器/数值结果见TEST_REPORT。
+
+v1.5运行时/APK已快进发布46b67b7554f5a91b88de07a0bd59689dedcf9a73，Pages built，线上HTML/APK与冻结字节相同。真实本机15次抓取和推动轨迹已通过；发布后线上UI再次排队/超时，截图拖拽及实体Android双指仍待验收。后续不要将HTTP一致代替线上交互，也不要再次询问指定仓库发布授权。
