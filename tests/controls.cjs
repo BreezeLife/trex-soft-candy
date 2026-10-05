@@ -119,6 +119,7 @@ const api = new Function(script + `
   renderer={backend:'webgpu',palette:0,mesh:false,draw(){}};ready=true;$('controls').disabled=false;controls();
   if(typeof renderLanguage==='function')renderLanguage();
   return {sim,skin,camera,renderer,registerJellyTools,jellyState,frame,getSlow:()=>slow,getReady:()=>ready,
+    getMinDistance:()=>minDistance(),getMaxDistance:()=>maxDistance(),
     setLanguage:typeof setLanguage==='function'?setLanguage:null,
     initializeLanguage:typeof initializeLanguage==='function'?initializeLanguage:null,
     getLanguage:()=>typeof language==='string'?language:null,fail,setTuning,getTuning:()=>tuningOpen,
@@ -230,7 +231,8 @@ assert.equal(grabDiagnostics.pointerCount, 1);
 assert.equal(grabDiagnostics.grabCount, 1);
 assert.equal(grabDiagnostics.lastGrab.sequence, 1);
 assert.deepEqual(grabDiagnostics.lastGrab.rest, api.skin.pick(camera.eye, camera.ray(hit.clientX, hit.clientY, canvas.getBoundingClientRect())).rest);
-assert.deepEqual(grabDiagnostics.lastPointer, { pointerId: 1, pointerType: 'mouse', x: hit.clientX, y: hit.clientY, width: 1400, height: 900 });
+assert.deepEqual(grabDiagnostics.lastPointer, { pointerId: 1, pointerType: 'mouse', x: hit.clientX, y: hit.clientY, width: 1400, height: 900,
+  button: 0, buttons: null, isPrimary: null, contactWidth: 1, contactHeight: 1, pressure: null });
 assert.equal(grabDiagnostics.lastGrab.x, hit.clientX);
 assert.equal(grabDiagnostics.lastGrab.y, hit.clientY);
 grabDiagnostics.lastGrab.rest[0] = 999;
@@ -281,9 +283,9 @@ canvas.events.pointermove({ clientX: 180, clientY: 450, pointerId: 1 });
 assert.notEqual(camera.yaw, yawBeforeGrab);
 canvas.events.pointerup({ pointerId: 1 });
 for (let i = 0; i < 20; i++) canvas.events.wheel({ preventDefault() {}, deltaY: 999 });
-assert.equal(camera.distance, 12.5);
+assert.equal(camera.distance, api.getMaxDistance());
 for (let i = 0; i < 20; i++) canvas.events.wheel({ preventDefault() {}, deltaY: -999 });
-assert.equal(camera.distance, 6.4);
+assert.equal(camera.distance, api.getMinDistance());
 pass('right-button orbit and both zoom limits');
 
 element('view').onclick();
@@ -388,6 +390,169 @@ for (const [name, interrupt] of [
   canvas.events.pointerup({ pointerId: 31 }); canvas.events.pointerup({ pointerId: 32 });
 }
 pass('dual grabs clean up on cancellation, blur, visibility, resize, pause and reset');
+
+// Phone-size tests use the real generated/deformed triangles and CSS-coordinate
+// contact geometry. These are Node event simulations, not Android hardware.
+const oldRect = canvas.getBoundingClientRect, oldCanvasSize = [canvas.width, canvas.height], oldMedia = global.matchMedia;
+const phoneRect = { left: 13, top: 112, width: 390, height: 430 };
+canvas.getBoundingClientRect = () => phoneRect; canvas.width = 390; canvas.height = 430;
+global.matchMedia = () => ({ matches: true });
+element('view').onclick(); camera.update(canvas.width / canvas.height);
+api.sim.reset(); api.skin.update();
+function phoneProject(point) {
+  const value = [0, 0, 0, 0], source = [...point, 1];
+  for (let row = 0; row < 4; row++) for (let column = 0; column < 4; column++) value[row] += camera.vp[column * 4 + row] * source[column];
+  return { clientX: phoneRect.left + (value[0] / value[3] + 1) * phoneRect.width / 2,
+    clientY: phoneRect.top + (1 - value[1] / value[3]) * phoneRect.height / 2 };
+}
+const touchPacket = (point, pointerId, isPrimary) => ({ ...point, pointerId, pointerType: 'touch', button: 0, buttons: 1,
+  isPrimary, width: 24, height: 24, pressure: .55 });
+const phoneHead = touchPacket(phoneProject([1.25, 3.02, .45]), 401, true);
+const phoneBody = touchPacket(phoneProject([-.25, 1.65, .6]), 402, false);
+canvas.events.pointerdown(phoneHead); canvas.events.pointerdown(phoneBody);
+assert.equal(api.sim.grabs.size, 2, 'A standards-shaped non-primary touch contact must be accepted independently.');
+const secondaryTarget = api.sim.grabs.get(402).target.slice();
+canvas.events.pointermove({ ...phoneBody, button: -1, clientX: phoneBody.clientX + 10 });
+assert.notDeepEqual(api.sim.grabs.get(402).target, secondaryTarget, 'Touch move button=-1 must not suppress the second hand.');
+assert.deepEqual(Object.fromEntries(['pointerType', 'button', 'buttons', 'isPrimary', 'contactWidth', 'contactHeight', 'pressure'].map(key => [key, api.jellyState().diagnostics.lastPointer[key]])),
+  { pointerType: 'touch', button: -1, buttons: 1, isPrimary: false, contactWidth: 24, contactHeight: 24, pressure: .55 }, 'Read-only diagnostics must retain the actual touch event shape for device investigation.');
+canvas.events.pointercancel({ pointerId: 401 });
+pass('phone-sized primary and non-primary touch packets retain independent grabs with standard move button state');
+
+const tailCenter = phoneProject([-2.7, 1.8, .04]);
+const rawPhonePick = point => api.skin.pick(camera.eye, camera.ray(point.clientX, point.clientY, phoneRect));
+let phoneNearMiss;
+findContact: for (let dx = -14; dx <= 14; dx += 2) for (let dy = -14; dy <= 14; dy += 2) {
+  const point = { clientX: tailCenter.clientX + dx, clientY: tailCenter.clientY + dy };
+  if (rawPhonePick(point)) continue;
+  for (const [ox, oy] of [[12, 0], [-12, 0], [0, 12], [0, -12]]) {
+    const contactHit = rawPhonePick({ clientX: point.clientX + ox, clientY: point.clientY + oy });
+    if (contactHit && contactHit.rest[0] < -2.3) { phoneNearMiss = touchPacket(point, 402, false); break findContact; }
+  }
+}
+assert.ok(phoneNearMiss, 'The phone fixture must exhibit a real thin-tail center miss inside a 24px contact area.');
+assert.equal(rawPhonePick(phoneNearMiss), null);
+canvas.events.pointerdown(phoneHead); canvas.events.pointerdown(phoneNearMiss);
+assert.equal(api.sim.grabs.size, 2, 'A finger pad touching a visible tail must create the second local grab even when its center ray misses.');
+const paddedGrab = api.sim.grabs.get(402);
+assert.ok(paddedGrab.rest[0] < -2.3, 'Touch tolerance must still bind the locally hit tail material.');
+console.log('Phone tail contact fixture:', JSON.stringify({ stage: phoneRect, cameraDistance: camera.distance,
+  tailCenter, fingerCenter: { clientX: phoneNearMiss.clientX, clientY: phoneNearMiss.clientY }, contact: [phoneNearMiss.width, phoneNearMiss.height],
+  centerRayHit: false, pickOffset: api.jellyState().diagnostics.lastGrab.pickOffset, materialRest: paddedGrab.rest }));
+const pickedOffset = api.jellyState().diagnostics.lastGrab.pickOffset;
+assert.ok(Math.hypot(...pickedOffset) > 0 && Math.hypot(...pickedOffset) <= 16, 'Touch pickup must report the bounded actual ray offset.');
+pickedOffset[0] = 999;
+assert.notEqual(api.jellyState().diagnostics.lastGrab.pickOffset[0], 999, 'Diagnostics must return a copy of pickup offsets.');
+const padTarget = paddedGrab.target.slice();
+canvas.events.pointermove({ ...phoneNearMiss, button: -1 });
+assert.ok(paddedGrab.target.every((value, i) => Math.abs(value - padTarget[i]) < 1e-5), 'The first move at the same finger center must not jump to the offset ray.');
+assert.equal(element('grabFeedback').hidden, false);
+assert.equal(element('grabFeedback').attrs['data-grabs'], '2', 'Successful two-hand input must have visible graphical feedback.');
+assert.equal(element('grabRingOne').hidden, false); assert.equal(element('grabRingTwo').hidden, false);
+assert.equal(element('grabFeedback').attrs['aria-hidden'], 'true');
+canvas.events.pointerup({ pointerId: 401 });
+assert.equal(element('grabRingOne').hidden, true); assert.equal(element('grabRingTwo').hidden, false, 'A surviving hand keeps its own colored feedback.');
+canvas.events.pointercancel({ pointerId: 402 });
+assert.equal(element('grabFeedback').hidden, true);
+assert.equal(element('grabRingOne').hidden, true); assert.equal(element('grabRingTwo').hidden, true);
+pass('a bounded finger contact hits the thin tail through a real ray and shows two independent grab rings without a target jump');
+
+canvas.events.pointerdown({ ...phoneNearMiss, pointerId: 403, pointerType: 'mouse', width: 24, height: 24 });
+assert.equal(api.sim.grabs.size, 0, 'Mouse input must retain precise center-ray picking.');
+canvas.events.pointerup({ pointerId: 403 });
+canvas.events.pointerdown(touchPacket({ clientX: 20, clientY: 140 }, 404, true));
+canvas.events.pointerdown({ ...touchPacket({ clientX: 50, clientY: 140 }, 405, false), width: 100000, height: 100000 });
+assert.equal(api.sim.grabs.size, 0, 'An oversized or bogus contact must not reach across blank space to the model.');
+assert.equal(api.jellyState().diagnostics.mode, 'pinch');
+assert.equal(element('grabFeedback').hidden, true);
+canvas.events.pointercancel({ pointerId: 404 });
+pass('touch tolerance remains bounded while mouse precision and two genuinely blank touches are preserved');
+
+// Move the actual volume before the second touch, then bind the currently
+// visible surface. Picking an undeformed rest mesh would attach the wrong part.
+canvas.events.pointerdown(phoneHead);
+canvas.events.pointermove({ ...phoneHead, button: -1, clientX: phoneHead.clientX + 25 });
+for (let i = 0; i < 12; i++) api.sim.step(1 / 90);
+api.skin.update();
+const bodyBind = api.sim.binding([-.25, 1.65, .5]), movedBody = touchPacket(phoneProject(api.sim.map(bodyBind)), 402, false);
+const deformedHit = rawPhonePick(movedBody);
+assert.ok(deformedHit, 'The delayed second touch fixture must hit the current deformed mesh.');
+canvas.events.pointerdown(movedBody);
+assert.equal(api.sim.grabs.size, 2);
+assert.deepEqual(api.sim.grabs.get(402).rest, deformedHit.rest, 'Delayed pickup must preserve the ray-hit material position from the current mesh.');
+assert.equal(element('grabFeedback').attrs['data-grabs'], '2');
+window.events.blur();
+assert.equal(api.sim.grabs.size, 0); assert.equal(canvas.capturedPointers.size, 0);
+assert.equal(element('grabFeedback').hidden, true, 'Focus interruption must hide both graphical grabs.');
+api.sim.reset(); api.skin.update();
+pass('a delayed second touch binds the first hand-deformed mesh and blur clears both graphical grabs');
+
+// Rotation changes the CSS rectangle before the next draw resizes the backing
+// buffer. Pickup must still match the displayed stage in that event window.
+const synchronizedBacking = [canvas.width, canvas.height];
+canvas.width = 1400; canvas.height = 900;
+camera.update(phoneRect.width / phoneRect.height);
+const resizedHead = touchPacket(phoneProject([1.25, 3.02, .45]), 406, true), resizedHit = rawPhonePick(resizedHead);
+assert.ok(resizedHit, 'The rotated CSS-stage fixture must visibly hit the head.');
+canvas.events.pointerdown(resizedHead);
+assert.ok(api.sim.grabs.has(406));
+assert.deepEqual(api.sim.grabs.get(406).rest, resizedHit.rest, 'Pickup during a stale backing-buffer resize must bind the actual CSS-stage ray hit.');
+assert.equal(camera.aspect, phoneRect.width / phoneRect.height);
+console.log('Phone resize contact fixture:', JSON.stringify({ stage: phoneRect, staleBacking: [canvas.width, canvas.height],
+  fingerCenter: { clientX: resizedHead.clientX, clientY: resizedHead.clientY }, materialRest: resizedHit.rest, cameraAspect: camera.aspect }));
+canvas.events.pointercancel({ pointerId: 406 });
+[canvas.width, canvas.height] = synchronizedBacking;
+pass('rotation before backing-buffer resize preserves the displayed-stage local touch binding');
+
+// Integrate the actual pointer handlers with the final camera-space arena.
+// Compare mapped material points, not just requested drag targets or Map size.
+const savedPhysics = [api.sim.firm, api.sim.damping];
+api.sim.firm = .55; api.sim.damping = .35; api.sim.setArena(camera.arena());
+const oppositeLeft = touchPacket(phoneProject([-.6, 1.8, .5]), 411, true);
+const oppositeRight = touchPacket(phoneProject([.5, 1.8, .5]), 412, false);
+canvas.events.pointerdown(oppositeLeft); canvas.events.pointerdown(oppositeRight);
+assert.equal(api.sim.grabs.size, 2, 'The integrated phone fixture must hit two distinct body locations.');
+const heldBindings = [api.sim.grabs.get(411).bind, api.sim.grabs.get(412).bind];
+assert.notDeepEqual(heldBindings[0].ids, heldBindings[1].ids);
+const separation = () => Math.hypot(...api.sim.map(heldBindings[0]).map((value, axis) => value - api.sim.map(heldBindings[1])[axis]));
+const initialSeparation = separation(), integratedCamera = [camera.yaw, camera.pitch, camera.distance, ...camera.target];
+let sampledStates = 0, maxHeldStrain = 0, volumeRange = [Infinity, -Infinity];
+const checkIntegratedState = () => {
+  const metrics = api.sim.metrics(); sampledStates++;
+  assert.ok(metrics.finite && api.sim.v.every(Number.isFinite));
+  assert.ok(metrics.maxStrain < 2.5 && metrics.minFloorClearance >= -.0001);
+  assert.ok(metrics.volumeRatio > .9 && metrics.volumeRatio < 1.1);
+  maxHeldStrain = Math.max(maxHeldStrain, metrics.maxStrain);
+  volumeRange[0] = Math.min(volumeRange[0], metrics.volumeRatio); volumeRange[1] = Math.max(volumeRange[1], metrics.volumeRatio);
+};
+for (let step = 0; step < 90; step++) {
+  if (step < 30) {
+    const distance = (step + 1) * 55 / 30;
+    canvas.events.pointermove({ ...oppositeLeft, button: -1, clientX: oppositeLeft.clientX - distance });
+    canvas.events.pointermove({ ...oppositeRight, button: -1, clientX: oppositeRight.clientX + distance });
+  }
+  api.sim.step(1 / 90); if (step % 15 === 14) checkIntegratedState();
+}
+const heldSeparation = separation();
+assert.ok(heldSeparation - initialSeparation > .25 && heldSeparation / initialSeparation > 1.2,
+  'Opposing touch events must increase the actual local material separation with the arena active.');
+assert.deepEqual([camera.yaw, camera.pitch, camera.distance, ...camera.target], integratedCamera, 'Touch stretching must keep the camera and floor projection fixed.');
+canvas.events.pointerup({ pointerId: 411 }); canvas.events.pointerup({ pointerId: 412 });
+assert.equal(api.sim.grabs.size, 0); assert.equal(canvas.capturedPointers.size, 0); assert.equal(element('grabFeedback').hidden, true);
+for (let step = 0; step < 360; step++) { api.sim.step(1 / 90); if (step % 15 === 14) checkIntegratedState(); }
+api.skin.update();
+assert.ok(api.skin.data.every(Number.isFinite));
+let minSurfaceY = Infinity;
+for (let i = 1; i < api.skin.positions.length; i += 3) minSurfaceY = Math.min(minSurfaceY, api.skin.positions[i]);
+assert.ok(minSurfaceY >= .0119, 'Released touch stretch must keep the actual skin above the fixed floor.');
+assert.ok(api.sim.metrics().energy < .15, 'Released touch stretch must settle with the final arena active.');
+console.log('Phone dual-touch arena:', JSON.stringify({ steps: 450, sampledStates, initialSeparation, heldSeparation,
+  gain: heldSeparation - initialSeparation, ratio: heldSeparation / initialSeparation, camera: integratedCamera,
+  maxStrain: maxHeldStrain, volumeRange, minSurfaceY, releaseEnergy: api.sim.metrics().energy }));
+[api.sim.firm, api.sim.damping] = savedPhysics; api.sim.reset(); api.skin.update();
+pass('opposing phone touch handlers stretch actual bindings within the arena, preserve the camera and recover after release');
+
+canvas.getBoundingClientRect = oldRect; [canvas.width, canvas.height] = oldCanvasSize; global.matchMedia = oldMedia;
 
 element('view').onclick();
 camera.update(1400 / 900);

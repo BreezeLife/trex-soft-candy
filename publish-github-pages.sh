@@ -30,8 +30,8 @@ files=(
   index.html .nojekyll .gitignore README.md package.json SHA256SUMS
   scripts/check.mjs scripts/serve.mjs publish-github-pages.sh START_HERE.md AGENTS.md CODEX_HANDOFF.md
   PROJECT.md MEMORY.md TASKS.md WORKLOG.md TEST_REPORT.md
-  tests/controls.cjs tests/fullscreen.cjs tests/adapter.cjs tests/renderer.cjs tests/physics.cjs tests/publish.cjs
-  design/toy-icons.png design/2026-10-03-toy-icons-prompt.json design/2026-10-04-two-hand-play.md
+  tests/controls.cjs tests/fullscreen.cjs tests/adapter.cjs tests/renderer.cjs tests/physics.cjs tests/arena.cjs tests/publish.cjs
+  design/toy-icons.png design/2026-10-03-toy-icons-prompt.json design/2026-10-04-two-hand-play.md design/2026-10-05-bounce-arena.md
   preview/coral.png preview/lagoon.png preview/grape.png
   android/.gitignore android/README.md android/settings.gradle android/build.gradle android/gradle.properties
   android/build-local.sh android/gradlew android/gradlew.bat
@@ -43,7 +43,7 @@ files=(
   android/app/src/main/res/values/colors.xml android/app/src/main/res/values/strings.xml
   android/app/src/main/res/values/themes.xml android/app/src/main/res/values-v27/themes.xml
   android/app/src/main/res/values-en/strings.xml
-  downloads/README.md downloads/trex-jelly-android-v1.3.0.apk downloads/trex-jelly-android-v1.4.0.apk
+  downloads/README.md downloads/trex-jelly-android-v1.3.0.apk downloads/trex-jelly-android-v1.4.0.apk downloads/trex-jelly-android-v1.5.0.apk
 )
 for file in "${files[@]}"; do
   guard_ancestors "$project_dir" "$file" '发布文件'

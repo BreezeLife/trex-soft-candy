@@ -10,10 +10,10 @@ const { spawnSync } = require('node:child_process');
 
 const projectDir = path.resolve(__dirname, '..');
 const records = ['PROJECT.md', 'MEMORY.md', 'TASKS.md', 'WORKLOG.md'];
-const apkFile = 'downloads/trex-jelly-android-v1.4.0.apk';
+const apkFile = 'downloads/trex-jelly-android-v1.5.0.apk';
 const previousApkFile = 'downloads/trex-jelly-android-v1.3.0.apk';
 const releaseAssets = ['tests/fullscreen.cjs', 'tests/adapter.cjs', 'tests/renderer.cjs', 'design/toy-icons.png',
-  'design/2026-10-03-toy-icons-prompt.json', 'design/2026-10-04-two-hand-play.md', previousApkFile, apkFile];
+  'design/2026-10-03-toy-icons-prompt.json', 'design/2026-10-04-two-hand-play.md', 'design/2026-10-05-bounce-arena.md', 'tests/arena.cjs', 'downloads/trex-jelly-android-v1.4.0.apk', previousApkFile, apkFile];
 const androidSources = [
   'android/.gitignore', 'android/README.md', 'android/settings.gradle', 'android/build.gradle', 'android/gradle.properties',
   'android/build-local.sh', 'android/gradlew', 'android/gradlew.bat',

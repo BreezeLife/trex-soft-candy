@@ -1,6 +1,6 @@
 # 霸王龙软软糖 / T-Rex Jelly · Android
 
-安装文件：`trex-jelly-android-v1.4.0.apk`（手机和平板通用安装测试版）。
+安装文件：`trex-jelly-android-v1.5.0.apk`（手机和平板通用安装测试版）。
 
 把 APK 发送到 Android 手机或平板，打开后按系统安装提示操作。最低系统版本为 Android 8.0，图形设备需支持 WebGPU 或 WebGL2。应用内置完整资源，可以离线使用；进入后可选择中文或 English。
 
@@ -13,4 +13,4 @@
 
 源码、构建方法与本地资源安全策略见 `../android/README.md`。私有签名文件与构建缓存不属于交付包。
 
-旧版 `trex-jelly-android-v1.3.0.apk` 保留历史下载；新增双指拉扯与纯图标界面请使用 v1.4.0。
+旧版 v1.3.0、v1.4.0 APK 保留历史下载。v1.5.0 增加视野围栏反弹、指腹拾取容错与双抓点彩色圆环。

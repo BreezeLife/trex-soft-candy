@@ -1,18 +1,19 @@
 {
   "name": "trex-soft-candy",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "A standalone procedural WebGPU gummy T-Rex toy.",
   "scripts": {
     "check": "node scripts/check.mjs",
     "dev": "node scripts/serve.mjs",
-    "test": "node tests/adapter.cjs && node tests/renderer.cjs && node tests/controls.cjs && node tests/fullscreen.cjs && node tests/physics.cjs",
+    "test": "node tests/adapter.cjs && node tests/renderer.cjs && node tests/controls.cjs && node tests/fullscreen.cjs && node tests/physics.cjs && node tests/arena.cjs",
     "test:controls": "node tests/controls.cjs",
     "test:physics": "node tests/physics.cjs",
     "test:publish": "node tests/publish.cjs",
     "test:fullscreen": "node tests/fullscreen.cjs",
     "test:adapter": "node tests/adapter.cjs",
-    "test:renderer": "node tests/renderer.cjs"
+    "test:renderer": "node tests/renderer.cjs",
+    "test:arena": "node tests/arena.cjs"
   },
   "engines": {
     "node": ">=18"
